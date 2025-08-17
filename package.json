@@ -1,5 +1,6 @@
 {
   "name": "sulog",
+  "publisher": "qgg",
   "displayName": "sulog",
   "description": "super quick use console.log",
   "version": "0.0.1",
@@ -9,7 +10,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:sulog.insertConsole",
+    "onCommand:sulog.sayHello"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -17,8 +21,58 @@
         "command": "sulog.sayHello",
         "title": "Hello World",
         "category": "sulog"
+      },
+      {
+        "command": "sulog.insertConsole",
+        "title": "Insert Console Log",
+        "category": "sulog"
+      },
+      {
+        "command": "sulog.removeConsoles",
+        "title": "Remove All Sulog Consoles",
+        "category": "sulog"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "sulog.insertConsole",
+        "key": "cmd+shift+l",
+        "mac": "cmd+shift+l",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "sulog.removeConsoles",
+        "key": "cmd+shift+D",
+        "mac": "cmd+shift+D",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Sulog Configuration",
+      "properties": {
+        "sulog.consoleShortcut": {
+          "type": "string",
+          "default": "cmd+shift+l",
+          "description": "Custom shortcut for inserting console.log statement"
+        },
+        "sulog.consolePrefix": {
+          "type": "string",
+          "default": "【sulog】",
+          "description": "Custom prefix for console.log statements"
+        },
+        "sulog.consoleTextColor": {
+          "type": "string",
+          "default": "#fff",
+          "description": "Custom text color for console.log statements (CSS color value)"
+        },
+        "sulog.consoleBackgroundColor": {
+          "type": "string",
+          "default": "#ff4e20",
+          "description": "Custom background color for console.log statements (CSS color value)"
+        }
+        
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",

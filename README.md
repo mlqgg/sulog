@@ -1,51 +1,97 @@
-# sulog README
+# Sulog VS Code Extension
 
-This is the README for your extension "sulog". After writing up a brief description, we recommend including the following sections.
+A super quick way to insert console.log statements in your code.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+1. Insert console.log statements quickly with a keyboard shortcut
+2. Automatically includes selected text in the console.log statement
+3. Customizable keyboard shortcut
+4. Customizable prefix for console.log statements
+5. Customizable text color and background color for console output
 
-For example if there is an image subfolder under your extension project workspace:
+## Usage
 
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1. Select any text in your editor
+2. Press `cmd+shift+l` (Mac) to insert a console.log statement with the selected text
+3. If no text is selected, a basic `console.log();` statement will be inserted
+4. The console.log statement is always inserted on the line below the cursor
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+None
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `sulog.consoleShortcut`: Custom shortcut for inserting console.log statements (default: `cmd+shift+l`)
+* `sulog.consolePrefix`: Custom prefix for console.log statements (default: `prefix>>>`)
+* `sulog.consoleTextColor`: Custom text color for console.log statements (CSS color value, default: empty)
+* `sulog.consoleBackgroundColor`: Custom background color for console.log statements (CSS color value, default: empty)
+
+## Customization
+
+You can customize various aspects of the extension by following these steps:
+
+### Keyboard Shortcut
+
+1. Open VS Code settings (Code > Preferences > Settings)
+2. Search for "Sulog Configuration"
+3. Change the "Console Shortcut" value to your desired keyboard shortcut
+4. Restart VS Code for the changes to take effect
+
+### Prefix
+
+1. Open VS Code settings (Code > Preferences > Settings)
+2. Search for "Sulog Configuration"
+3. Change the "Console Prefix" value to your desired prefix
+
+### Text Color
+
+1. Open VS Code settings (Code > Preferences > Settings)
+2. Search for "Sulog Configuration"
+3. Change the "Console Text Color" value to your desired CSS color value (e.g., `red`, `#ff0000`, `rgb(255, 0, 0)`)
+
+### Background Color
+
+1. Open VS Code settings (Code > Preferences > Settings)
+2. Search for "Sulog Configuration"
+3. Change the "Console Background Color" value to your desired CSS color value (e.g., `yellow`, `#ffff00`, `rgb(255, 255, 0)`)
+
+Alternatively, you can edit the `keybindings.json` file directly:
+
+1. Open the Command Palette (`cmd+shift+p`)
+2. Search for "Preferences: Open Keyboard Shortcuts (JSON)"
+3. Add or modify the keybinding for `sulog.insertConsole`
+
+Example keybindings.json entry:
+```json
+[
+  {
+    "key": "ctrl+shift+l",
+    "command": "sulog.insertConsole",
+    "when": "editorTextFocus"
+  }
+]
+```
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+* Keyboard shortcut changes require a restart of VS Code to take effect
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
+Initial release of Sulog
+- Basic console.log insertion
+- Customizable keyboard shortcut
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+### 0.0.2
+Added new features:
+- Customizable prefix for console.log statements
+- Customizable text color for console output
+- Customizable background color for console output
 
 ---
 
