@@ -1,0 +1,4 @@
+# .codebase/merge_request_config.yml
+code_review:
+  files_to_exclude: "*.rb"
+  extensions_to_exclude: [""]
