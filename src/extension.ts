@@ -15,14 +15,20 @@ export function activate(context: vscode.ExtensionContext) {
   const showConfigurationInfo = () => {
     const config = getConfiguration();
     const shortcut = config.get('consoleShortcut', 'cmd+shift+l');
-    const prefix = config.get('consolePrefix', '【sulog】');
+    const prefix = config.get('consolePrefix', 'sulog');
     const textColor = config.get('consoleTextColor', '#fff');
     const bgColor = config.get('consoleBackgroundColor', '#ff4e20');
+    const fontSize = config.get('consoleFontSize', '14px');
+    const fontWeight = config.get('consoleFontWeight', 'bold');
+    const mergeMultiVariables = config.get('mergeMultiVariables', true);
     console.log(`Current Sulog configuration:`);
     console.log(`  consoleShortcut = ${shortcut}`);
     console.log(`  consolePrefix = ${prefix}`);
     console.log(`  consoleTextColor = ${textColor}`);
     console.log(`  consoleBackgroundColor = ${bgColor}`);
+    console.log(`  consoleFontSize = ${fontSize}`);
+    console.log(`  consoleFontWeight = ${fontWeight}`);
+    console.log(`  mergeMultiVariables = ${mergeMultiVariables}`);
   };
 
   // 监听配置变化
@@ -47,87 +53,77 @@ export function activate(context: vscode.ExtensionContext) {
   // 注册removeConsoles命令
   const removeConsolesCommand = 'sulog.removeConsoles';
   const removeConsolesCommandHandler = async () => {
-    // 获取当前工作区文件夹
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) {
-      vscode.window.showErrorMessage('No workspace folder opened.');
+    // 仅处理当前活动编辑器中的文件
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage('No active editor. Open a file to remove sulog consoles.');
       return;
     }
 
-    const rootPath = workspaceFolders[0].uri.fsPath;
-    vscode.window.showInformationMessage(`Removing sulog consoles from ${rootPath}`);
+    const document = editor.document;
+    const filePath = document.uri.fsPath;
+    vscode.window.showInformationMessage(`Removing sulog consoles from current file: ${filePath}`);
 
     try {
-      // 查找所有JavaScript和TypeScript文件
-      const files = await vscode.workspace.findFiles('{**/*.js,**/*.ts,**/*.jsx,**/*.tsx}', '**/node_modules/**');
-      let removedCount = 0;
+      const text = document.getText();
 
-      for (const file of files) {
-        const document = await vscode.workspace.openTextDocument(file);
-        const text = document.getText();
+      // 获取配置中的prefix，用于识别sulog添加的console
+      const config = getConfiguration();
+      const prefix = config.get('consolePrefix', 'sulog');
 
-        // 获取配置中的prefix，用于识别sulog添加的console
-        const config = getConfiguration();
-        const prefix = config.get('consolePrefix', '【sulog】');
+      // 调试信息
+      console.log(`Trying to match sulog consoles with prefix: ${prefix}`);
 
-        // 构建正则表达式匹配sulog格式的console.log语句
-        // 尝试更简单的匹配方式
-        const prefixEscaped = escapeRegExp(prefix);
+      // 识别多行与单行的 console.log 模式（仅匹配由 sulog 插入的前缀参数）
+      const styledArgWithSpace = `'%c ${prefix}'`;
+      const styledArgNoSpace = `'%c${prefix}'`;
+      const plainArg = `'${prefix}'`;
 
-        // 调试信息
-        console.log(`Trying to match sulog consoles with prefix: ${prefix}`);
+      let newText = text;
+      let styledCount = 0;
+      let plainCount = 0;
 
-        // 匹配带样式的prefix console
-        const styledPattern = `console.log('%c${prefix}'`;
-        // 匹配不带样式的prefix console
-        const plainPattern = `console.log('${prefix}'`;
-
-        // 简单字符串匹配和替换
-        let newText = text;
-        let styledCount = 0;
-        let plainCount = 0;
-
-        // 处理带样式的console
-        let pos = newText.indexOf(styledPattern);
-        while (pos !== -1) {
-          // 查找行尾
-          const endPos = newText.indexOf(');', pos);
+      const removeByArg = (argPattern: string, counter: 'styled' | 'plain') => {
+        let searchPos = newText.indexOf(argPattern);
+        while (searchPos !== -1) {
+          const startPos = newText.lastIndexOf('console.log(', searchPos);
+          if (startPos === -1) {
+            searchPos = newText.indexOf(argPattern, searchPos + argPattern.length);
+            continue;
+          }
+          const endPos = newText.indexOf(');', searchPos);
           if (endPos !== -1) {
-            newText = newText.substring(0, pos) + newText.substring(endPos + 2);
-            styledCount++;
+            newText = newText.substring(0, startPos) + newText.substring(endPos + 2);
+            if (counter === 'styled') {
+              styledCount++;
+            } else {
+              plainCount++;
+            }
           } else {
             break;
           }
-          pos = newText.indexOf(styledPattern);
+          searchPos = newText.indexOf(argPattern);
         }
+      };
 
-        // 处理不带样式的console
-        pos = newText.indexOf(plainPattern);
-        while (pos !== -1) {
-          // 查找行尾
-          const endPos = newText.indexOf(');', pos);
-          if (endPos !== -1) {
-            newText = newText.substring(0, pos) + newText.substring(endPos + 2);
-            plainCount++;
-          } else {
-            break;
-          }
-          pos = newText.indexOf(plainPattern);
-        }
+      // 处理带样式（兼容空格与无空格）
+      removeByArg(styledArgWithSpace, 'styled');
+      removeByArg(styledArgNoSpace, 'styled');
+      // 处理不带样式
+      removeByArg(plainArg, 'plain');
 
-        removedCount += styledCount + plainCount;
-        console.log(`Removed ${styledCount} styled and ${plainCount} plain sulog consoles from ${file.fsPath}`);
+      const removedCount = styledCount + plainCount;
+      console.log(`Removed ${styledCount} styled and ${plainCount} plain sulog consoles from ${filePath}`);
 
-        // 如果内容有变化，写回文件
-        if (newText !== text) {
-          const edit = new vscode.WorkspaceEdit();
-          edit.replace(file, new vscode.Range(0, 0, document.lineCount, 0), newText);
-          await vscode.workspace.applyEdit(edit);
-          await document.save();
-        }
+      if (newText !== text) {
+        const fullRange = new vscode.Range(new vscode.Position(0, 0), document.lineAt(document.lineCount - 1).range.end);
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, fullRange, newText);
+        await vscode.workspace.applyEdit(edit);
+        await document.save();
       }
 
-      vscode.window.showInformationMessage(`Successfully removed ${removedCount} sulog console statements.`);
+      vscode.window.showInformationMessage(`Successfully removed ${removedCount} sulog console statements from current file.`);
     } catch (error) {
       vscode.window.showErrorMessage(`Error removing sulog consoles: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -150,43 +146,77 @@ export function activate(context: vscode.ExtensionContext) {
 
     // 获取配置
     const config = getConfiguration();
-    const prefix = config.get('consolePrefix', '【sulog】');
+    const prefix = config.get('consolePrefix', 'sulog');
     const textColor = config.get('consoleTextColor', '#fff');
     const bgColor = config.get('consoleBackgroundColor', '#ff4e20');
+    const fontSize = config.get('consoleFontSize', '14px');
+    const fontWeight = config.get('consoleFontWeight', 'bold');
+    const mergeMultiVariables = config.get('mergeMultiVariables', true);
 
-    // 构建样式字符串
-    let styleStr = '';
+    // 第一段样式（前缀样式）：color + background
+    let prefixStyle = '';
     if (textColor) {
-      styleStr += `color: ${textColor}; `;
+      prefixStyle += `color: ${textColor};`;
     }
     if (bgColor) {
-      styleStr += `background: ${bgColor};`;
+      prefixStyle += (prefixStyle ? ' ' : '') + `background: ${bgColor};`;
     }
 
-    // 构建console.log语句
+    // 第二段样式（标签样式）：从配置读取字体大小与粗细
+    const labelStyle = `font-size: ${fontSize}; font-weight: ${fontWeight};`;
+
+    // 构建console.log语句（多行格式，避免过长）
     let consoleStatement = '';
+    const buildMultiline = (label: string, valueExpr: string) => {
+      if (prefixStyle) {
+        return [
+          'console.log(',
+          `  '%c ${prefix} %c ${label}:',`,
+          `  '${prefixStyle}',`,
+          `  '${labelStyle}',`,
+          `  ${valueExpr},`,
+          ');'
+        ].join('\n');
+      }
+      // 无样式时，简化为无 %c 的多行
+      return [
+        'console.log(',
+        `  '${prefix} ${label}:',`,
+        `  ${valueExpr},`,
+        ');'
+      ].join('\n');
+    };
+
     if (selectedText) {
-      // 检查是否包含逗号分隔的多个变量
-      const variables = selectedText.split(',').map(varName => varName.trim()).filter(Boolean);
-      
+      const variables = selectedText.split(',').map(v => v.trim()).filter(Boolean);
       if (variables.length > 1) {
-        // 多个变量，一行输出并保留prefix样式
-        const enhancedStyle = `${styleStr} padding: 2px 6px; border-radius: 3px; font-weight: bold;`;
-        let logParts = [`'%c${prefix}', '${enhancedStyle}'`];
-        variables.forEach(varName => {
-          logParts.push(`'${varName} = ', ${varName}`);
-        });
-        consoleStatement = `console.log(${logParts.join(', ')});`;
+        if (mergeMultiVariables) {
+          const label = variables.join(', ');
+          const valueExpr = `{ ${variables.join(', ')} }`;
+          consoleStatement = buildMultiline(label, valueExpr);
+        } else {
+          const blocks = variables.map(varName => buildMultiline(varName, varName));
+          consoleStatement = blocks.join('\n');
+        }
       } else {
-        // 单个变量，保持原有逻辑
-        const enhancedStyle = `${styleStr} padding: 2px 6px; border-radius: 3px; font-weight: bold;`;
-        consoleStatement = `console.log('%c${prefix}', '${enhancedStyle}', '${selectedText}:', ${selectedText});`;
+        const varName = variables[0];
+        consoleStatement = buildMultiline(varName, varName);
       }
     } else {
-      if (styleStr) {
-        consoleStatement = `console.log('%c${prefix}', '${styleStr}');`;
+      // 无选择内容，仅输出前缀（第一段样式）
+      if (prefixStyle) {
+        consoleStatement = [
+          'console.log(',
+          `  '%c ${prefix}',`,
+          `  '${prefixStyle}',`,
+          ');'
+        ].join('\n');
       } else {
-        consoleStatement = `console.log('${prefix}');`;
+        consoleStatement = [
+          'console.log(',
+          `  '${prefix}',`,
+          ');'
+        ].join('\n');
       }
     }
 

@@ -12,7 +12,8 @@
   ],
   "activationEvents": [
     "onCommand:sulog.insertConsole",
-    "onCommand:sulog.sayHello"
+    "onCommand:sulog.sayHello",
+    "onCommand:sulog.removeConsoles"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -57,7 +58,7 @@
         },
         "sulog.consolePrefix": {
           "type": "string",
-          "default": "【sulog】",
+          "default": "sulog",
           "description": "Custom prefix for console.log statements"
         },
         "sulog.consoleTextColor": {
@@ -69,6 +70,21 @@
           "type": "string",
           "default": "#ff4e20",
           "description": "Custom background color for console.log statements (CSS color value)"
+        },
+        "sulog.consoleFontSize": {
+          "type": "string",
+          "default": "14px",
+          "description": "Font size for the label part of console output (e.g., '14px')"
+        },
+        "sulog.consoleFontWeight": {
+          "type": "string",
+          "default": "bold",
+          "description": "Font weight for the label part of console output (e.g., 'bold', '600')"
+        },
+        "sulog.mergeMultiVariables": {
+          "type": "boolean",
+          "default": true,
+          "description": "When selecting multiple variables, merge them into a single console.log statement"
         }
         
       }
