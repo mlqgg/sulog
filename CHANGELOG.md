@@ -15,3 +15,8 @@ Features & Improvements:
 Initial release:
 - Basic console.log insertion
 - Customizable keyboard shortcut
+## 0.1.1 - 2025-12-01
+Fixes & UX:
+- 删除正则调整：移除日志时保留下一行缩进，清理尾部空行，不破坏正常内容空格。
+- 插入对齐：按上一行缩进对齐生成的多行 console 语句。
+- 插入后定位：光标自动移动到插入语句末尾并居中显示。
